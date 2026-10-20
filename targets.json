@@ -12,7 +12,10 @@
     "id": "seven-tools",
     "name": "SEVEN Tools",
     "role": "demo",
-    "url": null
+    "url": "https://seven-tools-demo.guiler.chatgpt.site/",
+    "marker": "SEVEN Tools",
+    "allowedHosts": ["seven-tools-demo.guiler.chatgpt.site"],
+    "entryScript": true
   },
   {
     "id": "playsenac",
