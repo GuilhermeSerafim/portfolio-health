@@ -36,6 +36,11 @@ class PolicyTests(unittest.TestCase):
         wrong = response(body=b"<title>Not found</title>")
         self.assertEqual(monitor.classify(wrong, SPEC)["status"], "down")
 
+    def test_explicit_challenge_title_wins_even_when_it_mentions_project(self):
+        for suffix in (b"", b'<script type="module" src="./challenge.mjs"></script>'):
+            challenge = response(body=b"<title>Just a moment...</title><p>Checking OrbTalus</p>" + suffix)
+            self.assertEqual(monitor.classify(challenge, SPEC)["status"], "unknown")
+
     def test_incomplete_document_cannot_pass_without_entry_script(self):
         self.assertEqual(
             monitor.classify(response(body=b"<title>OrbTalus</title>"), SPEC)["status"],
@@ -75,6 +80,15 @@ class PolicyTests(unittest.TestCase):
     def test_changed_target_does_not_inherit_last_success(self):
         prior = {"projects": [{"id": "georisk", "targetId": "old", "lastSuccessAt": "2026-10-20T17:00:00Z"}]}
         self.assertIsNone(monitor.previous_success(prior, "georisk", "new", NOW))
+
+    def test_changed_probe_recipe_does_not_inherit_old_success(self):
+        prior = {"projects": [{
+            "id": "georisk", "targetId": monitor.target_id(SPEC),
+            "lastSuccessAt": "2026-10-20T17:00:00Z",
+        }]}
+        for update in ({"entryScript": False}, {"marker": "New version"}, {"allowedHosts": ["demo.example", "cdn.example"]}):
+            changed = {**SPEC, **update}
+            self.assertIsNone(monitor.previous_success(prior, "georisk", monitor.target_id(changed), NOW))
 
     def test_history_accepts_only_valid_past_success_for_same_target(self):
         prior = {"projects": [{"id": "georisk", "targetId": "same", "lastSuccessAt": "2026-10-20T17:00:00Z"}]}

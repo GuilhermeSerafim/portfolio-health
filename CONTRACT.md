@@ -29,8 +29,9 @@ does not execute it.
 
 `phase` is `active` or `pending`. An unpublished target has a null URL and
 timestamps, `phase: "pending"`, `status: "unknown"` and `reasonCode: "demo_pending"`.
-`targetId` changes when the measured URL or coverage changes. Historical success
-must not cross targets.
+`targetId` changes when URL, role or the probe recipe changes (marker,
+entry-script requirement, allowed redirect hosts, coverage/version). Historical
+success must not cross targets. It is an opaque identity, not a URL to open.
 
 Statuses: `operational`, `degraded`, `maintenance`, `down`, `unknown`.
 A repeated service failure can produce `down`, scoped to one observer.

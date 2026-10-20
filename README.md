@@ -48,7 +48,7 @@ The Pages artifact contains only `status.json`, `status.schema.json` and
 ## Operations
 
 Edit `targets.json` only after validating a final public URL and its safe read
-path. URL, role or coverage changes produce a new `targetId`, preventing old
+path. URL, role or probe-recipe changes produce a new `targetId`, preventing old
 success from being reused. `maintenance` may be set on a target with `startsAt`,
 `endsAt` (UTC ISO strings) and a short public `message`.
 

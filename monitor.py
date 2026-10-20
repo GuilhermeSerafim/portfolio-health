@@ -8,6 +8,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -44,7 +45,11 @@ def parse_time(value):
 
 
 def target_id(spec):
-    identity = [spec.get("url"), spec["role"], "http-content", 1]
+    identity = [
+        spec.get("url"), spec["role"], "http-content", 1,
+        spec.get("marker"), bool(spec.get("entryScript")),
+        sorted(spec.get("allowedHosts", [])),
+    ]
     digest = hashlib.sha256(json.dumps(identity, separators=(",", ":")).encode()).hexdigest()[:16]
     return f'{spec["id"]}:{digest}'
 
@@ -97,9 +102,10 @@ def classify(response, spec):
     if response.code != 200:
         return {"status": "down", "reasonCode": "http_error"}
     text = response.body.decode("utf-8", errors="replace")
+    if re.search(r"<title\b[^>]*>\s*(just a moment|attention required)", text, re.IGNORECASE):
+        return {"status": "unknown", "reasonCode": "probe_blocked"}
     if spec["marker"].casefold() not in text.casefold():
-        challenge = "<title>just a moment" in text.casefold() or "<title>attention required" in text.casefold()
-        return {"status": "unknown" if challenge else "down", "reasonCode": "probe_blocked" if challenge else "content_mismatch"}
+        return {"status": "down", "reasonCode": "content_mismatch"}
     if "text/html" not in response.content_type:
         return {"status": "down", "reasonCode": "content_mismatch"}
     if spec.get("entryScript") and not module_url(response):
