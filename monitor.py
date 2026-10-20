@@ -50,6 +50,8 @@ def target_id(spec):
         spec.get("marker"), bool(spec.get("entryScript")),
         sorted(spec.get("allowedHosts", [])),
     ]
+    if spec.get("entryScriptPrefix"):
+        identity.append(spec["entryScriptPrefix"])
     digest = hashlib.sha256(json.dumps(identity, separators=(",", ":")).encode()).hexdigest()[:16]
     return f'{spec["id"]}:{digest}'
 
@@ -64,18 +66,21 @@ class Response:
 
 
 class ModuleParser(HTMLParser):
-    def __init__(self):
+    def __init__(self, prefix=None):
         super().__init__()
         self.module = None
+        self.prefix = prefix
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if tag == "script" and attrs.get("type") == "module" and attrs.get("src") and not self.module:
-            self.module = attrs["src"]
+            basename = urlsplit(attrs["src"]).path.rsplit("/", 1)[-1]
+            if not self.prefix or basename.startswith(self.prefix):
+                self.module = attrs["src"]
 
 
-def module_url(response):
-    parser = ModuleParser()
+def module_url(response, prefix=None):
+    parser = ModuleParser(prefix)
     parser.feed(response.body.decode("utf-8", errors="replace"))
     return urljoin(response.url, parser.module) if parser.module else None
 
@@ -115,7 +120,7 @@ def classify(response, spec):
         return {"status": "down", "reasonCode": "content_mismatch"}
     if "text/html" not in response.content_type:
         return {"status": "down", "reasonCode": "content_mismatch"}
-    if spec.get("entryScript") and not module_url(response):
+    if spec.get("entryScript") and not module_url(response, spec.get("entryScriptPrefix")):
         return {"status": "down", "reasonCode": "entry_script_missing"}
     return {"status": "operational", "reasonCode": "ok"}
 
@@ -196,7 +201,7 @@ async def check_once(spec, *, timeout):
     outcome["checks"] = ["html-marker"]
     if outcome["status"] != "operational" or not spec.get("entryScript"):
         return outcome
-    script_url = module_url(page)
+    script_url = module_url(page, spec.get("entryScriptPrefix"))
     try:
         validate_url(script_url, spec["allowedHosts"])
     except (ValueError, TypeError):
@@ -356,6 +361,12 @@ def read_targets(path):
             validate_url(spec["url"], spec["allowedHosts"])
             if not isinstance(spec.get("marker"), str) or not spec["marker"]:
                 raise ValueError("Each active target needs an explicit content marker")
+            prefix = spec.get("entryScriptPrefix")
+            if prefix is not None and (
+                not isinstance(prefix, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", prefix)
+                or not spec.get("entryScript")
+            ):
+                raise ValueError("Entry script prefix must be an explicit filename prefix")
     return specs
 
 

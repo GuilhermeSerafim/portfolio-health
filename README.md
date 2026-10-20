@@ -17,8 +17,11 @@ works. See [the contract](CONTRACT.md) and [JSON Schema](status.schema.json).
 - Play Senac: explicitly pending until its reviewed demo URL arrives.
 - Mesa de Negócios: public landing document and module entry script only.
 
-Checks validate HTTP 200, an expected HTML marker and the first same-origin
-module entry script. They do not execute JavaScript, check transitive imports,
+Checks validate HTTP 200, an expected HTML marker and a selected same-origin
+module entry script. By default this is the first module; an explicit filename
+prefix selects the application's entry when a helper appears first (for example,
+Angular `main-` after polyfills). Missing selected modules fail the check.
+They do not execute JavaScript, check transitive imports,
 test API/database health or submit forms. Private originals and sleeping Render
 backends are not monitored.
 
@@ -49,8 +52,9 @@ The Pages artifact contains only `status.json`, `status.schema.json` and
 ## Operations
 
 Edit `targets.json` only after validating a final public URL and its safe read
-path. URL, role or probe-recipe changes produce a new `targetId`, preventing old
-success from being reused. `maintenance` may be set on a target with `startsAt`,
+path. URL, role or probe-recipe changes (including `entryScriptPrefix`) produce
+a new `targetId`, preventing old success from being reused.
+`maintenance` may be set on a target with `startsAt`,
 `endsAt` (UTC ISO strings) and a short public `message`.
 
 The workflow serializes collection and publication. Optional last-success history

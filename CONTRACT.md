@@ -3,8 +3,10 @@
 Public project IDs: `georisk`, `seven-tools`, `playsenac`, `mesa`.
 
 The feed measures the public demonstration URL, not the private original product.
-It makes read-only HTTPS requests to the HTML document and its first same-origin
-module entry script. `coverage: "http-content"` does not assert that a browser
+It makes read-only HTTPS requests to the HTML document and a selected same-origin
+module entry script. The default is the first module; targets may select a
+filename prefix (such as Angular `main-` after polyfills). A missing selected
+entry fails the check. `coverage: "http-content"` does not assert that a browser
 executed the application, that a form delivered a lead, or that an API/database
 works. No inference, user transaction or browser credential is used.
 
@@ -30,7 +32,7 @@ does not execute it.
 `phase` is `active` or `pending`. An unpublished target has a null URL and
 timestamps, `phase: "pending"`, `status: "unknown"` and `reasonCode: "demo_pending"`.
 `targetId` changes when URL, role or the probe recipe changes (marker,
-entry-script requirement, allowed redirect hosts, coverage/version). Historical
+entry-script requirement/selector, allowed redirect hosts, coverage/version). Historical
 success must not cross targets. It is an opaque identity, not a URL to open.
 
 Statuses: `operational`, `degraded`, `maintenance`, `down`, `unknown`.

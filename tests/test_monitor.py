@@ -86,7 +86,7 @@ class PolicyTests(unittest.TestCase):
             "id": "georisk", "targetId": monitor.target_id(SPEC),
             "lastSuccessAt": "2026-10-20T17:00:00Z",
         }]}
-        for update in ({"entryScript": False}, {"marker": "New version"}, {"allowedHosts": ["demo.example", "cdn.example"]}):
+        for update in ({"entryScript": False}, {"entryScriptPrefix": "main-"}, {"marker": "New version"}, {"allowedHosts": ["demo.example", "cdn.example"]}):
             changed = {**SPEC, **update}
             self.assertIsNone(monitor.previous_success(prior, "georisk", monitor.target_id(changed), NOW))
 
@@ -108,6 +108,34 @@ class PolicyTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_configured_entry_selects_main_instead_of_angular_polyfills(self):
+        html = b'<title>OrbTalus</title><script src="polyfills-123.js" type="module"></script><script src="main-456.js" type="module"></script>'
+        visited = []
+
+        async def get(url, **kwargs):
+            visited.append(url)
+            if url.endswith("main-456.js"):
+                return response(body=b"export const app = true;", content_type="text/javascript", url=url)
+            return response(body=html)
+
+        with patch.object(monitor, "fetch", side_effect=get):
+            result = await monitor.check_once({**SPEC, "entryScriptPrefix": "main-"}, timeout=1)
+        self.assertEqual(result["status"], "operational")
+        self.assertEqual(visited, ["https://demo.example/", "https://demo.example/main-456.js"])
+
+    async def test_missing_configured_entry_cannot_fall_back_to_polyfills(self):
+        html = b'<title>OrbTalus</title><script src="polyfills-123.js" type="module"></script>'
+
+        async def get(url, **kwargs):
+            if url.endswith(".js"):
+                return response(body=b"export const polyfills = true;", content_type="text/javascript", url=url)
+            return response(body=html)
+
+        with patch.object(monitor, "fetch", side_effect=get) as fetch:
+            result = await monitor.check_once({**SPEC, "entryScriptPrefix": "main-"}, timeout=1)
+        self.assertEqual(result["reasonCode"], "entry_script_missing")
+        self.assertEqual(fetch.await_count, 1)
+
     async def test_transport_deadline_terminates_the_owned_process(self):
         real_spawn = asyncio.create_subprocess_exec
         spawned = []
