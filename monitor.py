@@ -91,6 +91,13 @@ def validate_url(url, allowed_hosts):
     return url
 
 
+def challenge_title(response):
+    return "text/html" in response.content_type and bool(re.search(
+        r"<title\b[^>]*>\s*(just a moment|attention required)",
+        response.body.decode("utf-8", errors="replace"), re.IGNORECASE,
+    ))
+
+
 def classify(response, spec):
     if response.error:
         unknown = response.error in {
@@ -102,7 +109,7 @@ def classify(response, spec):
     if response.code != 200:
         return {"status": "down", "reasonCode": "http_error"}
     text = response.body.decode("utf-8", errors="replace")
-    if re.search(r"<title\b[^>]*>\s*(just a moment|attention required)", text, re.IGNORECASE):
+    if challenge_title(response):
         return {"status": "unknown", "reasonCode": "probe_blocked"}
     if spec["marker"].casefold() not in text.casefold():
         return {"status": "down", "reasonCode": "content_mismatch"}
@@ -203,6 +210,8 @@ async def check_once(spec, *, timeout):
         return {**outcome, **classify(script, spec)}
     if script.code in (401, 403, 429):
         return {**outcome, **classify(script, spec)}
+    if challenge_title(script):
+        return {**outcome, "status": "unknown", "reasonCode": "probe_blocked"}
     valid_js_type = any(mime in script.content_type for mime in ("javascript", "ecmascript"))
     if script.code != 200 or not script.body.strip() or not valid_js_type:
         return {**outcome, "status": "down", "reasonCode": "entry_script_invalid"}

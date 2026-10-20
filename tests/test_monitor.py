@@ -169,6 +169,16 @@ class CollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["status"], "down")
         self.assertEqual(result["reasonCode"], "entry_script_invalid")
 
+    async def test_entry_script_challenge_is_inconclusive(self):
+        async def get(url, **kwargs):
+            if url.endswith(".mjs"):
+                return response(body=b"<title>Just a moment...</title>", url=url)
+            return response()
+        with patch.object(monitor, "fetch", side_effect=get):
+            result = await monitor.check_once(SPEC, timeout=1)
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["reasonCode"], "probe_blocked")
+
     async def test_external_entry_script_is_not_fetched(self):
         external = b'<title>OrbTalus</title><script type="module" src="https://external.example/paid.js"></script>'
         with patch.object(monitor, "fetch", return_value=response(body=external)):
