@@ -1,0 +1,32 @@
+[
+  {
+    "id": "georisk",
+    "name": "GeoRisk / OrbTalus",
+    "role": "demo",
+    "url": "https://orbtalus-demo.guiler.chatgpt.site/",
+    "marker": "OrbTalus",
+    "allowedHosts": ["orbtalus-demo.guiler.chatgpt.site"],
+    "entryScript": true
+  },
+  {
+    "id": "seven-tools",
+    "name": "SEVEN Tools",
+    "role": "demo",
+    "url": null
+  },
+  {
+    "id": "playsenac",
+    "name": "Play Senac",
+    "role": "demo",
+    "url": null
+  },
+  {
+    "id": "mesa",
+    "name": "Mesa de Negócios",
+    "role": "original",
+    "url": "https://dennisnakamura.com/mesa-de-negocios",
+    "marker": "Mesa de Negócios",
+    "allowedHosts": ["dennisnakamura.com"],
+    "entryScript": true
+  }
+]

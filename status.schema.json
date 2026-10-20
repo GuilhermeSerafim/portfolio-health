@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public portfolio health feed v1",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "maxAgeSeconds", "source", "projects"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "maxAgeSeconds": {"const": 2700},
+    "source": {
+      "type": "object",
+      "required": ["provider", "event", "runId", "commit", "observationScope"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {"enum": ["github-actions", "local"]},
+        "event": {"type": "string"},
+        "runId": {"type": ["string", "null"]},
+        "commit": {"type": ["string", "null"]},
+        "observationScope": {"const": "single-runner"}
+      }
+    },
+    "projects": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {"$ref": "#/$defs/project"}
+    }
+  },
+  "$defs": {
+    "status": {"enum": ["operational", "degraded", "maintenance", "down", "unknown"]},
+    "timestamp": {"type": ["string", "null"], "format": "date-time"},
+    "component": {
+      "type": "object",
+      "required": ["id", "status", "reasonCode", "checkedAt", "validUntil", "attempts", "checks", "responseTimeMs", "httpStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"const": "public-entry"},
+        "status": {"$ref": "#/$defs/status"},
+        "reasonCode": {"type": "string"},
+        "checkedAt": {"$ref": "#/$defs/timestamp"},
+        "validUntil": {"$ref": "#/$defs/timestamp"},
+        "attempts": {"type": "integer", "minimum": 0, "maximum": 2},
+        "checks": {"type": "array", "items": {"enum": ["html-marker", "entry-script"]}},
+        "responseTimeMs": {"type": ["integer", "null"], "minimum": 0},
+        "httpStatus": {"type": ["integer", "null"], "minimum": 100, "maximum": 599}
+      }
+    },
+    "maintenance": {
+      "type": ["object", "null"],
+      "required": ["startsAt", "endsAt", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "startsAt": {"type": "string", "format": "date-time"},
+        "endsAt": {"type": "string", "format": "date-time"},
+        "message": {"type": "string", "minLength": 1, "maxLength": 160}
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "targetId", "role", "url", "phase", "status", "reasonCode", "publicMessage", "checkedAt", "lastSuccessAt", "validUntil", "coverage", "components", "maintenance"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"enum": ["georisk", "seven-tools", "playsenac", "mesa"]},
+        "name": {"type": "string"},
+        "targetId": {"type": "string"},
+        "role": {"enum": ["demo", "original"]},
+        "url": {"type": ["string", "null"], "format": "uri"},
+        "phase": {"enum": ["active", "pending"]},
+        "status": {"$ref": "#/$defs/status"},
+        "reasonCode": {"type": "string"},
+        "publicMessage": {"type": "string"},
+        "checkedAt": {"$ref": "#/$defs/timestamp"},
+        "lastSuccessAt": {"$ref": "#/$defs/timestamp"},
+        "validUntil": {"$ref": "#/$defs/timestamp"},
+        "coverage": {"const": "http-content"},
+        "components": {"type": "array", "maxItems": 1, "items": {"$ref": "#/$defs/component"}},
+        "maintenance": {"$ref": "#/$defs/maintenance"}
+      }
+    }
+  }
+}

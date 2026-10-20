@@ -1,0 +1,62 @@
+name: Public portfolio health
+
+on:
+  schedule:
+    - cron: "3,18,33,48 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - monitor.py
+      - targets.json
+      - status.schema.json
+      - tests/**
+      - .github/workflows/health.yml
+
+permissions:
+  contents: read
+
+# Serialize complete collection/publication so an older snapshot cannot win.
+concurrency:
+  group: public-portfolio-health
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test failure classification and deadlines
+        run: python3 -m unittest discover -s tests -v
+      - name: Read optional previous public snapshot
+        run: |
+          mkdir -p .work
+          curl --silent --show-error --fail --proto '=https' \
+            --max-time 10 --max-filesize 256000 \
+            https://guilhermeserafim.github.io/portfolio-health/status.json \
+            --output .work/previous.json || rm -f .work/previous.json
+      - name: Collect reviewed public targets
+        run: |
+          python3 monitor.py --previous .work/previous.json --total-timeout 180
+          cp status.schema.json dist/status.schema.json
+          touch dist/.nojekyll
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+          retention-days: 1
+
+  publish:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish JSON snapshot
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
