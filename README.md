@@ -14,7 +14,7 @@ works. See [the contract](CONTRACT.md) and [JSON Schema](status.schema.json).
 
 - GeoRisk / OrbTalus: public synthetic demonstration.
 - SEVEN Tools: public demonstration with synthetic scenarios.
-- Play Senac: explicitly pending until its reviewed demo URL arrives.
+- Play Senac: public demonstration with synthetic reservations; selected `main-` module.
 - Mesa de Negócios: public landing document and module entry script only.
 
 Checks validate HTTP 200, an expected HTML marker and a selected same-origin

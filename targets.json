@@ -21,7 +21,11 @@
     "id": "playsenac",
     "name": "Play Senac",
     "role": "demo",
-    "url": null
+    "url": "https://play-senac-demo.guiler.chatgpt.site/",
+    "marker": "Play Senac",
+    "allowedHosts": ["play-senac-demo.guiler.chatgpt.site"],
+    "entryScript": true,
+    "entryScriptPrefix": "main-"
   },
   {
     "id": "mesa",
