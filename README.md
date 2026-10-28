@@ -1,72 +1,79 @@
-# Portfolio health
+# portfolio-health
 
-A small public status feed for four portfolio projects. Python standard library,
-curl, GitHub Actions and Pages; no AI calls, account logins, reservations or leads.
+Monitor de disponibilidade das minhas demonstrações públicas. Publica um feed JSON com evidências HTTPS limitadas, prazo de validade explícito e estados que distinguem falha do serviço de verificação inconclusiva. A sondagem não substitui teste funcional ou monitoramento dos produtos privados.
 
-Feed: https://guilhermeserafim.github.io/portfolio-health/status.json
+## Demonstração e imagens
 
-The workflow requests a check at minutes **03, 18, 33 and 48 UTC**. GitHub may delay
-or skip scheduled runs. Consumers must downgrade observations older than **45
-minutes** to `unknown`. This is not an uptime SLA or proof that a whole product
-works. See [the contract](CONTRACT.md) and [JSON Schema](status.schema.json).
+[Feed público](https://guilhermeserafim.github.io/portfolio-health/status.json) · [Consumidor no portfólio](https://guiler.vercel.app). Publicação do feed não significa que todos os serviços estejam saudáveis.
 
-## Coverage
+## Minha contribuição e autoria
 
-- GeoRisk / OrbTalus: public synthetic demonstration.
-- SEVEN Tools: public demonstration with synthetic scenarios.
-- Play Senac: public demonstration with synthetic reservations; selected `main-` module.
-- Mesa de Negócios: public landing document and module entry script only.
+O histórico do repositório registra minha implementação do monitor e seus testes. O contrato torna explícito o que uma sondagem consegue — e não consegue — observar.
 
-Checks validate HTTP 200, an expected HTML marker and a selected same-origin
-module entry script. By default this is the first module; an explicit filename
-prefix selects the application's entry when a helper appears first (for example,
-Angular `main-` after polyfills). Missing selected modules fail the check.
-They do not execute JavaScript, check transitive imports,
-test API/database health or submit forms. Private originals and sleeping Render
-backends are not monitored.
+## Arquitetura e implementação
 
-Only two equivalent service failures produce `down`; recovery on retry produces
-`degraded`. HTTP 401/403, bot challenges and rate limits are inconclusive.
-Maintenance is an explicit, time-bounded declaration. Real check times and
-per-target identities are included; the publication time cannot renew evidence.
+A coleta limita destinos, tempo e volume de resposta. Uma evidência expira após 45 minutos; atualizar o horário de geração do arquivo não renova o horário da observação. Mudanças de URL ou receita invalidam a identidade anterior do alvo. GitHub Actions publica somente os artefatos previstos em Pages.
 
-## Run
+O [contrato](CONTRACT.md) define os estados e a validade; os [testes do monitor](tests/test_monitor.py) cobrem o tratamento dessas evidências.
 
-Python 3.11+ and curl with `%{json}` support are required.
+## Instalação e configuração
 
-```sh
-python -m unittest discover -s tests -v
+Requer Python 3.11 ou superior e curl com suporte a `%{json}`. `monitor.py` consulta os alvos externos configurados.
+
+A implementação usa biblioteca padrão Python. Execute os testes antes de fazer a sondagem externa; `targets.json` controla os alvos permitidos.
+
+```text
 python monitor.py
 ```
 
-The collector allows at most four simultaneous targets, 15 seconds per attempt,
-one retry after 30 seconds for a service failure, and a 180-second total deadline.
-Each response is capped at 2 MiB. Redirects must remain on reviewed HTTPS hosts,
-without credentials or query strings. Temporary response bodies are discarded.
-`responseTimeMs` measures the complete probe, including retry delay when used;
-it is not a page-speed score.
+## Testes e verificações
 
-The Pages artifact contains only `status.json`, `status.schema.json` and
-`.nojekyll`. No logs, response bodies or credentials are published.
+Os comandos abaixo documentam a suíte existente; não representam uma execução nova nem um resultado de aprovação.
 
-## Operations
+```text
+python -m unittest discover -s tests -v
+```
 
-Edit `targets.json` only after validating a final public URL and its safe read
-path. URL, role or probe-recipe changes (including `entryScriptPrefix`) produce
-a new `targetId`, preventing old success from being reused.
-`maintenance` may be set on a target with `startsAt`,
-`endsAt` (UTC ISO strings) and a short public `message`.
+## Limites atuais
 
-The workflow serializes collection and publication. Optional last-success history
-comes only from the previous public snapshot for the same target. If history is
-unavailable it remains null; no timestamp is invented.
+- Não verifica banco, APIs privadas, transações ou execução completa do JavaScript.
+- Bloqueio automatizado e falta de evidência não devem ser convertidos em falha definitiva de serviço.
+- Não fornece SLA, disponibilidade contínua comprovada ou monitoramento completo dos produtos.
 
-Review Actions/Pages availability and repository activity periodically. GitHub
-can disable schedules after 60 days without repository activity. A manual
-`workflow_dispatch` proves publication, not the operation of the scheduler.
+<details>
+<summary>Referência de uso e documentação complementar</summary>
 
-Public repository standard runners and Pages fit the documented free offering.
-No paid subscriptions are enabled by this project; account-wide quotas, provider
-terms and availability may change. See [Actions schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule),
-[billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)
-and [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+## Cobertura e critérios de sondagem
+
+- GeoRisk / OrbTalus: demonstração pública sintética.
+- SEVEN Tools: demonstração pública com cenários sintéticos.
+- Play Senac: demonstração pública com reservas sintéticas; seleciona o módulo `main-`.
+- Mesa de Negócios: documento público da landing page e seu módulo de entrada.
+
+As sondagens validam HTTP 200, um marcador HTML esperado e um módulo de entrada da mesma origem. Por padrão, usam o primeiro módulo; um prefixo explícito seleciona a entrada da aplicação quando há um auxiliar antes dela, como os polyfills do Angular. A ausência do módulo selecionado faz a verificação falhar.
+
+Não executam JavaScript, não verificam imports transitivos e não submetem formulários. Os produtos privados e os backends Render não fazem parte dessa cobertura.
+
+Duas falhas de serviço equivalentes produzem `down`; recuperação na segunda tentativa produz `degraded`. Respostas HTTP 401/403, desafios contra bots e limites de requisições são inconclusivos. Consulte o [contrato](CONTRACT.md) e o [JSON Schema](status.schema.json).
+
+## Limites da sondagem e artefatos
+
+O coletor limita a quatro alvos simultâneos, 15 segundos por tentativa, uma repetição após 30 segundos para falha de serviço e 180 segundos de prazo total. Cada resposta é limitada a 2 MiB. Redirecionamentos precisam permanecer em hosts HTTPS revisados, sem credenciais ou parâmetros de consulta. Corpos temporários de resposta são descartados.
+
+`responseTimeMs` mede a sondagem completa, incluindo a espera de repetição quando houver; não é uma pontuação de velocidade da página.
+
+O artefato publicado no Pages contém apenas `status.json`, `status.schema.json` e `.nojekyll`. Logs, corpos de resposta e credenciais não são publicados.
+
+## Operação e agendamento
+
+O workflow solicita verificações nos minutos **03, 18, 33 e 48 UTC**. O GitHub pode atrasar ou não executar um agendamento. Consumidores devem rebaixar observações com mais de 45 minutos para `unknown`.
+
+Edite `targets.json` somente após validar a URL pública final e o caminho seguro de leitura. Mudanças de URL, papel ou receita da sondagem, incluindo `entryScriptPrefix`, produzem um novo `targetId`, impedindo reutilizar sucesso antigo.
+
+É possível declarar manutenção em `maintenance`, com `startsAt`, `endsAt` em UTC ISO e uma mensagem pública curta em `message`.
+
+O workflow serializa coleta e publicação. O histórico opcional de último sucesso vem somente do snapshot público anterior do mesmo alvo. Se estiver indisponível, permanece nulo; nenhum horário é inventado.
+
+Revise periodicamente Actions, Pages e a atividade do repositório. O GitHub pode desativar agendamentos após 60 dias sem atividade. Um `workflow_dispatch` manual comprova publicação, não o funcionamento do agendador. Referências: [agendamento no GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule) e [limites do Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+
+</details>
