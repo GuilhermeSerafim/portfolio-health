@@ -45,7 +45,7 @@ python -m unittest discover -s tests -v
 
 ## Cobertura e critérios de sondagem
 
-- GeoRisk / OrbTalus: demonstração pública sintética.
+- OrbTalus (também referido como GeoRisk) é o projeto. Qualquer demonstração pública específica deve ser identificada separadamente em `targets.json`, com implementação, dados e limites verificados; a sondagem HTTP não comprova esses aspectos.
 - SEVEN Tools: demonstração pública com cenários sintéticos.
 - Play Senac: demonstração pública com reservas sintéticas; seleciona o módulo `main-`.
 - Mesa de Negócios: documento público da landing page e seu módulo de entrada.
